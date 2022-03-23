@@ -4,6 +4,8 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -20,7 +22,10 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       hidePanel={hidePanel}
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
-      <div>hello</div>
+      <TaskList>
+        <Heading>{t('Boost Performance')}</Heading>
+        <div>hello</div>
+      </TaskList>
     </TaskSidebarPanel>
   );
 }
@@ -35,6 +40,23 @@ const TopRightBackgroundImage = styled('img')`
   right: 0;
   width: 60%;
   user-select: none;
+`;
+
+const TaskList = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  gap: ${space(1)};
+  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+`;
+
+const Heading = styled('div')`
+  display: flex;
+  color: ${p => p.theme.purple300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  text-transform: uppercase;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: ${space(3)};
 `;
 
 export default PerformanceOnboardingSidebar;
