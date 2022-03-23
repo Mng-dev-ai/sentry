@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -114,8 +115,14 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
-      actionType: 'external',
-      location: 'https://docs.sentry.io/product/performance/getting-started/',
+      actionType: 'action',
+      action: ({router}) => {
+        // TODO: add analytics here for this specific action.
+        navigateTo(
+          `/organizations/${organization.slug}/performance/#performance-sidequest`,
+          router
+        );
+      },
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
