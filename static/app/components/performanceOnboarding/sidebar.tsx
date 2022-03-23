@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
+
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 
@@ -17,6 +19,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       collapsed={collapsed}
       hidePanel={hidePanel}
     >
+      <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <div>hello</div>
     </TaskSidebarPanel>
   );
@@ -24,6 +27,14 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;
+`;
+
+const TopRightBackgroundImage = styled('img')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  user-select: none;
 `;
 
 export default PerformanceOnboardingSidebar;
