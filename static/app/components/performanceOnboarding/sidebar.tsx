@@ -2,18 +2,28 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import IdBadge from 'sentry/components/idBadge';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
 
-  if (!isActive) {
+  const organization = useOrganization();
+  const access = new Set(organization.access);
+  const hasProjectAccess = access.has('project:read');
+
+  if (!isActive || !hasProjectAccess) {
     return null;
   }
+
+  const {projects} = useProjects();
+  const project = projects[0];
 
   return (
     <TaskSidebarPanel
@@ -24,7 +34,14 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
-        <div>hello</div>
+        <div>
+          <StyledIdBadge project={project} avatarSize={18} hideOverflow disableLink />
+        </div>
+        <div>
+          {t(
+            'Adding performance to your Javascript project is simple. Make sure you’ve got these basics down.'
+          )}
+        </div>
       </TaskList>
     </TaskSidebarPanel>
   );
@@ -57,6 +74,12 @@ const Heading = styled('div')`
   font-weight: 600;
   line-height: 1;
   margin-top: ${space(3)};
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 1;
 `;
 
 export default PerformanceOnboardingSidebar;
