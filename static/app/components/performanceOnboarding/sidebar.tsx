@@ -35,7 +35,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
         <div>
-          <StyledIdBadge project={project} avatarSize={18} hideOverflow disableLink />
+          <StyledIdBadge project={project} avatarSize={32} hideOverflow disableLink />
         </div>
         <div>
           {t(
