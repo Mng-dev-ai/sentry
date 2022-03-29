@@ -18,11 +18,12 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const access = new Set(organization.access);
   const hasProjectAccess = access.has('project:read');
 
-  if (!isActive || !hasProjectAccess) {
+  const {projects} = useProjects();
+
+  if (!isActive || !hasProjectAccess || !projects || projects.length <= 0) {
     return null;
   }
 
-  const {projects} = useProjects();
   const project = projects[0];
 
   return (
