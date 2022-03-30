@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import IdBadge from 'sentry/components/idBadge';
@@ -11,8 +12,12 @@ import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/typ
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import EventWaiter from 'sentry/utils/eventWaiter';
+import marked from 'sentry/utils/marked';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -20,6 +25,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
 
+  const api = useApi();
   const organization = useOrganization();
   const access = new Set(organization.access);
   const hasProjectAccess = access.has('project:read');
@@ -82,6 +88,8 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     return acc;
   }, []);
 
+  const tasks = [INSTALL_CONTENT, CONFIGURE_SAMPLE_RATE, VERIFY];
+
   return (
     <TaskSidebarPanel
       orientation={orientation}
@@ -114,6 +122,41 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
             'Adding performance to your Javascript project is simple. Make sure you’ve got these basics down.'
           )}
         </div>
+        {tasks.map((content, index) => {
+          let footer: React.ReactNode = null;
+
+          if (index === 2) {
+            footer = (
+              <EventWaiter
+                api={api}
+                organization={organization}
+                project={currentProject}
+                eventType="transaction"
+                onIssueReceived={() => {
+                  // TODO
+                }}
+              >
+                {() => <EventWaitingIndicator />}
+              </EventWaiter>
+            );
+          }
+
+          return (
+            <div key={index}>
+              <TaskCheckBox>
+                <CheckboxFancy
+                  size="22px"
+                  isChecked
+                  onClick={() => {
+                    return;
+                  }}
+                />
+              </TaskCheckBox>
+              <DocumentationWrapper dangerouslySetInnerHTML={{__html: marked(content)}} />
+              {footer}
+            </div>
+          );
+        })}
       </TaskList>
     </TaskSidebarPanel>
   );
@@ -152,6 +195,100 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const TaskCheckBox = styled('div')`
+  float: left;
+  margin-right: ${space(1.5)};
+  height: 27px;
+  display: flex;
+  align-items: center;
+`;
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  margin-right: ${space(1)};
+`;
+
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    <PulsingIndicator />
+    {t(`Waiting for this project's first transaction event`)}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.pink300};
+`;
+
+const DocumentationWrapper = styled('div')`
+  p {
+    line-height: 1.5;
+  }
+  pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+`;
+
+const INSTALL_CONTENT = `
+#### Install
+
+Install the tracing package. Without this, you're missing out on tracing.
+
+\`\`\`sh
+# Using yarn
+yarn add @sentry/browser @sentry/tracing
+
+# Using npm
+npm install --save @sentry/browser @sentry/tracing
+\`\`\`
+`;
+
+const CONFIGURE_SAMPLE_RATE = `
+#### Configure
+
+Sampling for transactions must also be configured before tracing is be enabled in your app.
+
+\`\`\`js
+import * as Sentry from "@sentry/browser";
+
+// If taking advantage of automatic instrumentation (highly recommended)
+import { BrowserTracing } from "@sentry/tracing";
+// Or, if only manually tracing
+// import * as _ from "@sentry/tracing"
+// Note: You MUST import the package in some way for tracing to work
+
+Sentry.init({
+  dsn: "https://examplePublicKey@o0.ingest.sentry.io/0",
+
+  // This enables automatic instrumentation (highly recommended), but is not
+  // necessary for purely manual usage
+  integrations: [new BrowserTracing()],
+
+  // To set a uniform sample rate
+  tracesSampleRate: 0.2
+
+  // Alternatively, to control sampling dynamically
+  tracesSampler: samplingContext => { ... }
+});
+\`\`\`
+`;
+
+const VERIFY = `
+#### Verify
+
+Verify that performance monitoring is working correctly by using our automatic instrumentation or by starting and finishing a transaction using custom instrumentation.
+
+\`\`\`js
+const transaction = Sentry.startTransaction({ name: "test-transaction" });
+const span = transaction.startChild({ op: "functionX" }); // This function returns a Span
+// functionCallX
+span.finish(); // Remember that only finished spans will be sent with the transaction
+transaction.finish(); // Finishing the transaction will send it to Sentry
+\`\`\`
 `;
 
 export default PerformanceOnboardingSidebar;
