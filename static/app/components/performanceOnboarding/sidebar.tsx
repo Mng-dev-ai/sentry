@@ -1,16 +1,19 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import Button from 'sentry/components/button';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import IdBadge from 'sentry/components/idBadge';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {t} from 'sentry/locale';
+import platforms from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
@@ -26,8 +29,6 @@ import wizardContent from './docs';
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
-
-  const api = useApi();
   const organization = useOrganization();
   const access = new Set(organization.access);
   const hasProjectAccess = access.has('project:read');
@@ -90,9 +91,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     return acc;
   }, []);
 
-  const docs = wizardContent[currentProject.platform || 'javascript'];
-  const tasks = [docs.INSTALL, docs.CONFIGURE, docs.VERIFY];
-
   return (
     <TaskSidebarPanel
       orientation={orientation}
@@ -120,48 +118,98 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
             placement="bottom left"
           />
         </div>
-        <div>
-          {t(
-            'Adding performance to your Javascript project is simple. Make sure you’ve got these basics down.'
-          )}
-        </div>
-        {tasks.map((content, index) => {
-          let footer: React.ReactNode = null;
-
-          if (index === 2) {
-            footer = (
-              <EventWaiter
-                api={api}
-                organization={organization}
-                project={currentProject}
-                eventType="transaction"
-                onIssueReceived={() => {
-                  // TODO
-                }}
-              >
-                {() => <EventWaitingIndicator />}
-              </EventWaiter>
-            );
-          }
-
-          return (
-            <div key={index}>
-              <TaskCheckBox>
-                <CheckboxFancy
-                  size="22px"
-                  isChecked
-                  onClick={() => {
-                    return;
-                  }}
-                />
-              </TaskCheckBox>
-              <DocumentationWrapper dangerouslySetInnerHTML={{__html: marked(content)}} />
-              {footer}
-            </div>
-          );
-        })}
+        <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </TaskSidebarPanel>
+  );
+}
+
+function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const api = useApi();
+  const organization = useOrganization();
+  const [received, setReceived] = useState<boolean>(false);
+
+  const currentPlatform = platforms.find(p => p.id === currentProject.platform);
+  const docs = wizardContent[currentProject.platform || 'javascript'];
+
+  if (!currentPlatform || !docs) {
+    // TODO: generate sentry error
+    return (
+      <Fragment>
+        <div>
+          {t(
+            'We are unable to find performance setup instructions for your project. This should not have happened. Rest assured we are notified and are on the case.'
+          )}
+        </div>
+        <div>
+          <Button size="small" href="https://docs.sentry.io/platforms/" external>
+            {t('Go to Sentry Documentation')}
+          </Button>
+        </div>
+      </Fragment>
+    );
+  }
+
+  const tasks = [docs.INSTALL, docs.CONFIGURE, docs.VERIFY];
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          `Adding performance to your [platform] project is simple. Make sure you've got these basics down.`,
+          {platform: currentPlatform?.name || currentProject.slug}
+        )}
+      </div>
+      {tasks.map((content, index) => {
+        let footer: React.ReactNode = null;
+
+        if (index === 2) {
+          footer = (
+            <EventWaiter
+              api={api}
+              organization={organization}
+              project={currentProject}
+              eventType="transaction"
+              onIssueReceived={() => {
+                setReceived(true);
+              }}
+            >
+              {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
+            </EventWaiter>
+          );
+        }
+
+        return (
+          <div key={index}>
+            <TaskCheckBox>
+              <CheckboxFancy
+                size="22px"
+                isChecked
+                onClick={() => {
+                  return;
+                }}
+              />
+            </TaskCheckBox>
+            <DocumentationWrapper dangerouslySetInnerHTML={{__html: marked(content)}} />
+            {footer}
+          </div>
+        );
+      })}
+      <div>
+        <Button
+          size="small"
+          onClick={() => {
+            setReceived(true);
+            const mockProjectUpdate: Project = {
+              ...currentProject,
+              firstTransactionEvent: true,
+            };
+            ProjectsStore.onUpdateSuccess(mockProjectUpdate);
+          }}
+        >
+          {t('God mode: Send a Transaction')}
+        </Button>
+      </div>
+    </Fragment>
   );
 }
 
@@ -224,6 +272,19 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.pink300};
+`;
+
+const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {'🎉 '}
+    {t(`We've received this project's first transaction event!`)}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.green300};
 `;
 
 const DocumentationWrapper = styled('div')`
