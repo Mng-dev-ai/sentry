@@ -19,6 +19,7 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -128,6 +129,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const [received, setReceived] = useState<boolean>(false);
+  const [increment, setIncrement] = useState<number>(0);
 
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
   const docs = wizardContent[currentProject.platform || 'javascript'];
@@ -178,13 +180,25 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           );
         }
 
+        const localStorageKey = `perf-onboarding-${currentProject.id}-${index}`;
+        const isChecked = localStorage.getItem(localStorageKey) === 'check';
+
         return (
           <div key={index}>
             <TaskCheckBox>
               <CheckboxFancy
                 size="22px"
-                isChecked
-                onClick={() => {
+                isChecked={isChecked}
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setIncrement(increment + 1);
+                  if (isChecked) {
+                    localStorage.removeItem(localStorageKey);
+                  } else {
+                    localStorage.setItem(localStorageKey, 'check');
+                  }
+
                   return;
                 }}
               />
@@ -254,6 +268,7 @@ const TaskCheckBox = styled('div')`
   height: 27px;
   display: flex;
   align-items: center;
+  user-select: none;
 `;
 
 const PulsingIndicator = styled('div')`
