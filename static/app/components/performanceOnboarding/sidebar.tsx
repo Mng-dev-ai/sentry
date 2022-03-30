@@ -1,12 +1,18 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import IdBadge from 'sentry/components/idBadge';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -18,13 +24,58 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const access = new Set(organization.access);
   const hasProjectAccess = access.has('project:read');
 
-  const {projects} = useProjects();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  if (!isActive || !hasProjectAccess || !projects || projects.length <= 0) {
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
+
+  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+
+  useEffect(() => {
+    if (currentProject === undefined) {
+      if (isReady && selection.projects.length && selection.projects[0] >= 0) {
+        if (projects.length) {
+          const needle = projects.find(
+            project => project.id === String(selection.projects[0])
+          );
+          if (needle) {
+            setCurrentProject(needle);
+            return;
+          }
+        }
+      }
+
+      if (projects.length) {
+        setCurrentProject(projects[0]);
+      }
+    }
+  }, [selection.projects, projects]);
+
+  if (
+    !isActive ||
+    !hasProjectAccess ||
+    currentProject === undefined ||
+    !projectsLoaded ||
+    !projects ||
+    projects.length <= 0
+  ) {
     return null;
   }
 
-  const project = projects[0];
+  const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
+    const itemProps = {
+      key: project.id,
+      label: project.slug,
+      onAction: function switchProject() {},
+    };
+
+    if (currentProject.id === project.id) {
+      acc.unshift(itemProps);
+    } else {
+      acc.push(itemProps);
+    }
+
+    return acc;
+  }, []);
 
   return (
     <TaskSidebarPanel
