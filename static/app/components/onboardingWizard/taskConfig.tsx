@@ -119,7 +119,7 @@ export function getOnboardingTasks({
       action: ({router}) => {
         // TODO: add analytics here for this specific action.
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=:projectId#performance-sidequest`,
+          `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`,
           router
         );
       },
