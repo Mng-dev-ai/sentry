@@ -31,24 +31,27 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
   useEffect(() => {
-    if (currentProject === undefined) {
-      if (isReady && selection.projects.length && selection.projects[0] >= 0) {
-        if (projects.length) {
-          const needle = projects.find(
-            project => project.id === String(selection.projects[0])
-          );
-          if (needle) {
-            setCurrentProject(needle);
-            return;
-          }
-        }
-      }
+    if (projects.length === 0 || !isReady || !isActive) {
+      return;
+    }
 
-      if (projects.length) {
-        setCurrentProject(projects[0]);
+    const selectedProjects = new Set(selection.projects.map(id => String(id)));
+
+    if (selection.projects.length) {
+      if (currentProject && selectedProjects.has(currentProject.id)) {
+        return;
+      }
+      const needle = projects.find(
+        project => project.id === String(selection.projects[0])
+      );
+      if (needle) {
+        setCurrentProject(needle);
+        return;
       }
     }
-  }, [selection.projects, projects]);
+
+    setCurrentProject(projects[0]);
+  }, [selection.projects, projects, isActive]);
 
   if (
     !isActive ||
@@ -62,10 +65,12 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   }
 
   const items: MenuItemProps[] = projects.reduce((acc: MenuItemProps[], project) => {
-    const itemProps = {
+    const itemProps: MenuItemProps = {
       key: project.id,
-      label: project.slug,
-      onAction: function switchProject() {},
+      label: <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />,
+      onAction: function switchProject() {
+        setCurrentProject(project);
+      },
     };
 
     if (currentProject.id === project.id) {
@@ -87,7 +92,25 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
         <div>
-          <StyledIdBadge project={project} avatarSize={32} hideOverflow disableLink />
+          <DropdownMenuControlV2
+            items={items}
+            triggerLabel={
+              <StyledIdBadge
+                project={{
+                  ...currentProject,
+                  slug: `${currentProject.slug} Checklist`,
+                }}
+                avatarSize={32}
+                hideOverflow
+                disableLink
+              />
+            }
+            triggerProps={{
+              'aria-label': `${currentProject.slug} checklist`,
+              borderless: true,
+            }}
+            placement="bottom left"
+          />
         </div>
         <div>
           {t(
