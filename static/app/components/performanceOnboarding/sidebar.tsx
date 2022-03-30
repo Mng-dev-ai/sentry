@@ -96,17 +96,14 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
             items={items}
             triggerLabel={
               <StyledIdBadge
-                project={{
-                  ...currentProject,
-                  slug: `${currentProject.slug} Checklist`,
-                }}
+                project={currentProject}
                 avatarSize={32}
                 hideOverflow
                 disableLink
               />
             }
             triggerProps={{
-              'aria-label': `${currentProject.slug} checklist`,
+              'aria-label': currentProject.slug,
               borderless: true,
             }}
             placement="bottom left"
