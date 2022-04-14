@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import {Client} from 'sentry/api';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {
@@ -124,7 +124,7 @@ export function getOnboardingTasks({
           `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`,
           router
         );
-        SidebarPanelActions.togglePanel(SidebarPanelKey.PerformanceOnboarding);
+        SidebarPanelStore.togglePanel(SidebarPanelKey.PerformanceOnboarding);
       },
       display: true,
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>

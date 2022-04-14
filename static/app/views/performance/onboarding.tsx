@@ -13,7 +13,6 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import SidebarPanelActions from 'sentry/actions/sidebarPanelActions';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal, {
@@ -24,6 +23,7 @@ import FeatureTourModal, {
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
@@ -124,7 +124,7 @@ function Onboarding({organization, project}: Props) {
           priority="primary"
           onClick={event => {
             event.preventDefault();
-            SidebarPanelActions.togglePanel(SidebarPanelKey.PerformanceOnboarding);
+            SidebarPanelStore.togglePanel(SidebarPanelKey.PerformanceOnboarding);
           }}
         >
           {t('Start Setup')}
