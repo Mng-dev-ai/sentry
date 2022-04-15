@@ -1,8 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {loadDocs} from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
@@ -129,10 +131,46 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const [received, setReceived] = useState<boolean>(false);
+  const [loadingDocs, setLoadingDocs] = useState<boolean>(false);
+  // const [html, setHtml] = useState<string | undefined>(undefined);
+  // const [link, setLink] = useState<string | undefined>(undefined);
   const [increment, setIncrement] = useState<number>(0);
 
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
+
+  useEffect(() => {
+    if (!currentPlatform) {
+      setLoadingDocs(false);
+      return;
+    }
+
+    api.clear();
+    setLoadingDocs(true);
+
+    loadDocs(
+      api,
+      organization.slug,
+      currentProject.slug,
+      'javascript-performance-onboarding-1-install' as any
+    )
+      .then(({html, link}) => {
+        // TODO:
+        console.log('html', html);
+        console.log('link', link);
+
+        setLoadingDocs(false);
+      })
+      .catch(error => {
+        Sentry.captureException(error);
+        setLoadingDocs(false);
+      });
+  }, [currentPlatform]);
+
   const docs = wizardContent[currentProject.platform || 'javascript'];
+
+  if (loadingDocs) {
+    return <div>Loading</div>;
+  }
 
   if (!currentPlatform || !docs) {
     // TODO: generate sentry error
