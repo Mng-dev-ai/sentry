@@ -127,6 +127,12 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   );
 }
 
+function generateOnboardingDocKeys(platform: PlatformKey): string[] {
+  return ['1-install', '2-configure', '3-verify'].map(
+    key => `${key}-performance-onboarding-${key}`
+  );
+}
+
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
