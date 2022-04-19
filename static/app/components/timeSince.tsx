@@ -124,6 +124,7 @@ class TimeSince extends React.PureComponent<Props, State> {
     return (
       <Tooltip
         disabled={disabledAbsoluteTooltip}
+        showUnderline
         title={
           <div>
             <div>{tooltipTitle}</div>
