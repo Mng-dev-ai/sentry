@@ -195,16 +195,20 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               docKey={docKey}
               project={currentProject}
               setLoadingDoc={(loadingState: boolean) =>
-                setLoadingDocs({
-                  ...loadingDocs,
-                  docKey: loadingState,
+                setLoadingDocs(prevState => {
+                  return {
+                    ...prevState,
+                    [docKey]: loadingState,
+                  };
                 })
               }
               docContent={docContents[docKey]}
               setDocContent={(docContent: string) =>
-                setDocContents({
-                  ...docContents,
-                  docKey: docContent,
+                setDocContents(prevState => {
+                  return {
+                    ...prevState,
+                    [docKey]: docContent,
+                  };
                 })
               }
             />
@@ -212,21 +216,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </div>
         );
       })}
-      <div>
-        <Button
-          size="small"
-          onClick={() => {
-            setReceived(true);
-            const mockProjectUpdate: Project = {
-              ...currentProject,
-              firstTransactionEvent: true,
-            };
-            ProjectsStore.onUpdateSuccess(mockProjectUpdate);
-          }}
-        >
-          {t('God mode: Send a Transaction')}
-        </Button>
-      </div>
     </Fragment>
   );
 }

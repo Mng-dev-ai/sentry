@@ -7,7 +7,6 @@ import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
-import marked from 'sentry/utils/marked';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -52,7 +51,7 @@ function OnBoardingStep(props: Props) {
       });
   }, [currentPlatform]);
 
-  console.log(docKey, docContent);
+  // console.log(docKey, docContent);
 
   if (!docContent) {
     return <div>Loading</div>;
@@ -78,7 +77,7 @@ function OnBoardingStep(props: Props) {
           }}
         />
       </TaskCheckBox>
-      <DocumentationWrapper dangerouslySetInnerHTML={{__html: marked(docContent)}} />
+      <DocumentationWrapper dangerouslySetInnerHTML={{__html: docContent}} />
     </div>
   );
 }
