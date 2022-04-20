@@ -1,13 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
-import {result} from 'lodash';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {loadDocs} from 'sentry/actionCreators/projects';
 import Button from 'sentry/components/button';
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import IdBadge from 'sentry/components/idBadge';
@@ -23,13 +19,11 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
-import localStorage from 'sentry/utils/localStorage';
-import marked from 'sentry/utils/marked';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import wizardContent from './docs';
+import OnBoardingStep from './step';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -139,59 +133,17 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const [received, setReceived] = useState<boolean>(false);
-  const [loadingDocs, setLoadingDocs] = useState<boolean>(false);
+  const [loadingDocs, setLoadingDocs] = useState<Record<string, boolean>>({});
   const [docContents, setDocContents] = useState<Record<string, string>>({});
   // const [link, setLink] = useState<string | undefined>(undefined);
-  const [increment, setIncrement] = useState<number>(0);
+
+  // const isLoadingDocs = Object.values(loadingDocs).every(Boolean);
+  // if (isLoadingDocs) {
+  //   return <div>Loading</div>;
+  // }
 
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
-
-  useEffect(() => {
-    if (!currentPlatform) {
-      setLoadingDocs(false);
-      return;
-    }
-
-    api.clear();
-    setLoadingDocs(true);
-
-    const docKeys = generateOnboardingDocKeys(currentPlatform.id);
-
-    const promises = docKeys.map(key =>
-      loadDocs(api, organization.slug, currentProject.slug, key as any).then(
-        ({html, link}) => {
-          return {
-            key,
-            html: html as string,
-            link: link as string,
-          };
-        }
-      )
-    );
-    Promise.allSettled(promises)
-      .then(results => {
-        results.forEach(foo => {
-          const {key, html, link} = foo;
-          setDocContents({
-            ...docContents,
-            key: html as string,
-          });
-        });
-        setLoadingDocs(false);
-      })
-      .catch(error => {
-        Sentry.captureException(error);
-        setLoadingDocs(false);
-      });
-  }, [currentPlatform]);
-
-  const docs = wizardContent[currentProject.platform || 'javascript'];
-
-  if (loadingDocs) {
-    return <div>Loading</div>;
-  }
-
-  if (!currentPlatform || !docs) {
+  if (!currentPlatform) {
     // TODO: generate sentry error
     return (
       <Fragment>
@@ -209,7 +161,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const tasks = [docs.INSTALL, docs.CONFIGURE, docs.VERIFY];
+  const docKeys = generateOnboardingDocKeys(currentPlatform.id);
+
   return (
     <Fragment>
       <div>
@@ -218,7 +171,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </div>
-      {tasks.map((content, index) => {
+      {docKeys.map((docKey, index) => {
         let footer: React.ReactNode = null;
 
         if (index === 2) {
@@ -236,31 +189,25 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             </EventWaiter>
           );
         }
-
-        const localStorageKey = `perf-onboarding-${currentProject.id}-${index}`;
-        const isChecked = localStorage.getItem(localStorageKey) === 'check';
-
         return (
           <div key={index}>
-            <TaskCheckBox>
-              <CheckboxFancy
-                size="22px"
-                isChecked={isChecked}
-                onClick={event => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setIncrement(increment + 1);
-                  if (isChecked) {
-                    localStorage.removeItem(localStorageKey);
-                  } else {
-                    localStorage.setItem(localStorageKey, 'check');
-                  }
-
-                  return;
-                }}
-              />
-            </TaskCheckBox>
-            <DocumentationWrapper dangerouslySetInnerHTML={{__html: marked(content)}} />
+            <OnBoardingStep
+              docKey={docKey}
+              project={currentProject}
+              setLoadingDoc={(loadingState: boolean) =>
+                setLoadingDocs({
+                  ...loadingDocs,
+                  docKey: loadingState,
+                })
+              }
+              docContent={docContents[docKey]}
+              setDocContent={(docContent: string) =>
+                setDocContents({
+                  ...docContents,
+                  docKey: docContent,
+                })
+              }
+            />
             {footer}
           </div>
         );
@@ -319,15 +266,6 @@ const StyledIdBadge = styled(IdBadge)`
   flex-shrink: 1;
 `;
 
-const TaskCheckBox = styled('div')`
-  float: left;
-  margin-right: ${space(1.5)};
-  height: 27px;
-  display: flex;
-  align-items: center;
-  user-select: none;
-`;
-
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   margin-right: ${space(1)};
@@ -357,16 +295,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.green300};
-`;
-
-const DocumentationWrapper = styled('div')`
-  p {
-    line-height: 1.5;
-  }
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
-  }
 `;
 
 export default PerformanceOnboardingSidebar;
