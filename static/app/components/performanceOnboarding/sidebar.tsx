@@ -13,7 +13,6 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
@@ -24,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import OnBoardingStep from './step';
+import usePerformanceOnboardingDocs from './usePerformanceOnboardingDocs';
 
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -133,14 +133,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const [received, setReceived] = useState<boolean>(false);
-  const [loadingDocs, setLoadingDocs] = useState<Record<string, boolean>>({});
-  const [docContents, setDocContents] = useState<Record<string, string>>({});
-  // const [link, setLink] = useState<string | undefined>(undefined);
 
-  // const isLoadingDocs = Object.values(loadingDocs).every(Boolean);
-  // if (isLoadingDocs) {
-  //   return <div>Loading</div>;
-  // }
+  const {docContents, isLoading} = usePerformanceOnboardingDocs(currentProject);
+
+  if (isLoading) {
+    return <div>Loading</div>;
+  }
 
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
   if (!currentPlatform) {
@@ -194,23 +192,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             <OnBoardingStep
               docKey={docKey}
               project={currentProject}
-              setLoadingDoc={(loadingState: boolean) =>
-                setLoadingDocs(prevState => {
-                  return {
-                    ...prevState,
-                    [docKey]: loadingState,
-                  };
-                })
-              }
               docContent={docContents[docKey]}
-              setDocContent={(docContent: string) =>
-                setDocContents(prevState => {
-                  return {
-                    ...prevState,
-                    [docKey]: docContent,
-                  };
-                })
-              }
             />
             {footer}
           </div>

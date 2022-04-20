@@ -58,43 +58,44 @@ function usePerformanceOnboardingDocs(project: Project) {
 
   const currentPlatform = platforms.find(p => p.id === project.platform);
 
-  useEffect(() => {
-    if (!currentPlatform) {
-      setLoadingDocs({});
-      setDocContents({});
-      return;
-    }
+  if (!currentPlatform) {
+    setLoadingDocs({});
+    setDocContents({});
+    return {
+      isLoading: false,
+      docContents: {},
+    };
+  }
 
-    const docKeys = generateOnboardingDocKeys(currentPlatform.id);
+  const docKeys = generateOnboardingDocKeys(currentPlatform.id);
 
-    docKeys.forEach(docKey => {
-      useDocumentationContent({
-        docKey,
-        project,
-        setLoadingDoc: (loadingState: boolean) =>
-          setLoadingDocs(prevState => {
-            return {
+  docKeys.forEach(docKey => {
+    useDocumentationContent({
+      docKey,
+      project,
+      setLoadingDoc: (loadingState: boolean) =>
+        setLoadingDocs(prevState => {
+          return {
+            ...prevState,
+            [docKey]: loadingState,
+          };
+        }),
+      setDocContent: (docContent: string | undefined) =>
+        setDocContents(prevState => {
+          if (docContent === undefined) {
+            const newState = {
               ...prevState,
-              [docKey]: loadingState,
             };
-          }),
-        setDocContent: (docContent: string | undefined) =>
-          setDocContents(prevState => {
-            if (docContent === undefined) {
-              const newState = {
-                ...prevState,
-              };
-              delete newState[docKey];
-              return newState;
-            }
-            return {
-              ...prevState,
-              [docKey]: docContent,
-            };
-          }),
-      });
+            delete newState[docKey];
+            return newState;
+          }
+          return {
+            ...prevState,
+            [docKey]: docContent,
+          };
+        }),
     });
-  }, [currentPlatform]);
+  });
 
   return {
     isLoading: Object.values(loadingDocs).every(Boolean),
