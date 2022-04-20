@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {result} from 'lodash';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -12,6 +13,7 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import IdBadge from 'sentry/components/idBadge';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -129,7 +131,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
 function generateOnboardingDocKeys(platform: PlatformKey): string[] {
   return ['1-install', '2-configure', '3-verify'].map(
-    key => `${key}-performance-onboarding-${key}`
+    key => `${platform}-performance-onboarding-${key}`
   );
 }
 
@@ -138,7 +140,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const [received, setReceived] = useState<boolean>(false);
   const [loadingDocs, setLoadingDocs] = useState<boolean>(false);
-  // const [html, setHtml] = useState<string | undefined>(undefined);
+  const [docContents, setDocContents] = useState<Record<string, string>>({});
   // const [link, setLink] = useState<string | undefined>(undefined);
   const [increment, setIncrement] = useState<number>(0);
 
@@ -153,17 +155,28 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     api.clear();
     setLoadingDocs(true);
 
-    loadDocs(
-      api,
-      organization.slug,
-      currentProject.slug,
-      'javascript-performance-onboarding-1-install' as any
-    )
-      .then(({html, link}) => {
-        // TODO:
-        console.log('html', html);
-        console.log('link', link);
+    const docKeys = generateOnboardingDocKeys(currentPlatform.id);
 
+    const promises = docKeys.map(key =>
+      loadDocs(api, organization.slug, currentProject.slug, key as any).then(
+        ({html, link}) => {
+          return {
+            key,
+            html: html as string,
+            link: link as string,
+          };
+        }
+      )
+    );
+    Promise.allSettled(promises)
+      .then(results => {
+        results.forEach(foo => {
+          const {key, html, link} = foo;
+          setDocContents({
+            ...docContents,
+            key: html as string,
+          });
+        });
         setLoadingDocs(false);
       })
       .catch(error => {
