@@ -20,6 +20,7 @@ import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
 import OnBoardingStep from './step';
@@ -132,16 +133,24 @@ function generateOnboardingDocKeys(platform: PlatformKey): string[] {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
+  const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
 
-  const {docContents, isLoading} = usePerformanceOnboardingDocs(currentProject);
+  useEffect(() => {
+    if (previousProject.id !== currentProject.id) {
+      setReceived(false);
+    }
+  }, [currentProject]);
+
+  const {docContents, isLoading, hasOnboardingContents} =
+    usePerformanceOnboardingDocs(currentProject);
 
   if (isLoading) {
     return <div>Loading</div>;
   }
 
   const currentPlatform = platforms.find(p => p.id === currentProject.platform);
-  if (!currentPlatform) {
+  if (!currentPlatform || !hasOnboardingContents) {
     // TODO: generate sentry error
     return (
       <Fragment>

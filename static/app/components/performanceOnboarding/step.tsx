@@ -17,37 +17,45 @@ function OnBoardingStep(props: Props) {
 
   const [increment, setIncrement] = useState<number>(0);
 
-  const localStorageKey = `perf-onboarding-${project.id}-${docKey}`;
-  const isChecked = localStorage.getItem(localStorageKey) === 'check';
-
   if (!docContent) {
     return null;
   }
 
+  const localStorageKey = `perf-onboarding-${project.id}-${docKey}`;
+
+  function isChecked() {
+    return localStorage.getItem(localStorageKey) === 'check';
+  }
+
   return (
-    <div>
+    <Wrapper>
       <TaskCheckBox>
         <CheckboxFancy
           size="22px"
-          isChecked={isChecked}
+          isChecked={isChecked()}
           onClick={event => {
             event.preventDefault();
             event.stopPropagation();
-            setIncrement(increment + 1);
-            if (isChecked) {
+
+            if (isChecked()) {
               localStorage.removeItem(localStorageKey);
             } else {
               localStorage.setItem(localStorageKey, 'check');
             }
+            setIncrement(increment + 1);
 
             return;
           }}
         />
       </TaskCheckBox>
       <DocumentationWrapper dangerouslySetInnerHTML={{__html: docContent}} />
-    </div>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
 
 const TaskCheckBox = styled('div')`
   float: left;
@@ -55,7 +63,8 @@ const TaskCheckBox = styled('div')`
   height: 27px;
   display: flex;
   align-items: center;
-  user-select: none;
+  z-index: 2;
+  position: relative;
 `;
 
 const DocumentationWrapper = styled('div')`
@@ -66,6 +75,8 @@ const DocumentationWrapper = styled('div')`
     word-break: break-all;
     white-space: pre-wrap;
   }
+  z-index: 1;
+  position: relative;
 `;
 
 export default OnBoardingStep;

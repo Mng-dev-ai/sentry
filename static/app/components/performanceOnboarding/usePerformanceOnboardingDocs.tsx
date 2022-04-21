@@ -63,6 +63,7 @@ function usePerformanceOnboardingDocs(project: Project) {
     setDocContents({});
     return {
       isLoading: false,
+      hasOnboardingContents: false,
       docContents: {},
     };
   }
@@ -97,8 +98,20 @@ function usePerformanceOnboardingDocs(project: Project) {
     });
   });
 
+  const isLoading = docKeys.some(key => {
+    if (key in loadingDocs) {
+      return !!loadingDocs[key];
+    }
+    return true;
+  });
+
+  const hasOnboardingContents = docKeys.every(
+    key => typeof docContents[key] === 'string'
+  );
+
   return {
-    isLoading: Object.values(loadingDocs).every(Boolean),
+    isLoading,
+    hasOnboardingContents,
     docContents,
   };
 }
